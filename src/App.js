@@ -1,8 +1,73 @@
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useInView } from "framer-motion";
+import emailjs from "emailjs-com";
+import profileImage from "./assets/profile.png";
+
+const CONTACT_EMAIL = "mohdsithik0786@gmail.com";
 
 function App() {
   const [selectedProject, setSelectedProject] = useState(null);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
+  const [sending, setSending] = useState(false);
+  const [formStatus, setFormStatus] = useState(null); // "success" | "error" | null
+  const aboutRef = useRef(null);
+  const skillsRef = useRef(null);
+  const projectsRef = useRef(null);
+  const availabilityRef = useRef(null);
+  const contactRef = useRef(null);
+  const aboutInView = useInView(aboutRef, { once: true, margin: "-80px" });
+  const skillsInView = useInView(skillsRef, { once: true, margin: "-80px" });
+  const projectsInView = useInView(projectsRef, { once: true, margin: "-80px" });
+  const availabilityInView = useInView(availabilityRef, { once: true, margin: "-80px" });
+  const contactInView = useInView(contactRef, { once: true, margin: "-80px" });
+
+  useEffect(() => {
+    const onScroll = () => setNavScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const handleContactChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormStatus(null);
+  };
+
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID;
+    const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID;
+    const publicKey = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
+
+    if (!serviceId || !templateId || !publicKey) {
+      setFormStatus("error");
+      return;
+    }
+
+    setSending(true);
+    setFormStatus(null);
+
+    const templateParams = {
+      from_name: formData.name,
+      from_email: formData.email,
+      subject: formData.subject,
+      message: formData.message,
+      to_email: CONTACT_EMAIL,
+    };
+
+    emailjs
+      .send(serviceId, templateId, templateParams, publicKey)
+      .then(
+        () => {
+          setFormStatus("success");
+          setFormData({ name: "", email: "", subject: "", message: "" });
+        },
+        () => setFormStatus("error")
+      )
+      .finally(() => setSending(false));
+  };
 
   const projects = [
     {
@@ -132,204 +197,242 @@ function App() {
     setSelectedProject(null);
   };
 
+  const navVariants = {
+    hidden: { y: -80, opacity: 0 },
+    visible: { y: 0, opacity: 1 },
+    scrolled: { boxShadow: "0 8px 32px rgba(139, 92, 246, 0.15)" },
+  };
+
+  const stagger = { staggerChildren: 0.08, delayChildren: 0.1 };
+  const fadeUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0 },
+  };
+  const fadeIn = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
+
   return (
     <div className="App">
       {/* Navigation */}
-      <nav className="navbar">
+      <motion.nav
+        className={`navbar ${navScrolled ? "navbar-scrolled" : ""}`}
+        initial="hidden"
+        animate="visible"
+        variants={navVariants}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         <div className="nav-container">
-          <div className="nav-logo">
-            {/* <span className="logo-text">Mohammed Sithik</span> */}
-          </div>
+          <div className="nav-logo" />
           <ul className="nav-menu">
-            <li className="nav-item">
-              <a href="#home" className="nav-link">
-                Home
-              </a>
-            </li>
-            <li className="nav-item">
-              <a href="#about" className="nav-link">
-                About
-              </a>
-            </li>
-            <li className="nav-item">
-              <a href="#skills" className="nav-link">
-                Skills
-              </a>
-            </li>
-            <li className="nav-item">
-              <a href="#availability" className="nav-link">
-                Availability
-              </a>
-            </li>
-            <li className="nav-item">
-              <a href="#projects" className="nav-link">
-                Projects
-              </a>
-            </li>
-            <li className="nav-item">
-              <a href="#contact" className="nav-link">
-                Contact
-              </a>
-            </li>
+            {["Home", "About", "Skills", "Availability", "Projects", "Contact"].map((label, i) => (
+              <motion.li key={label} className="nav-item" variants={fadeIn}>
+                <a href={`#${label === "Home" ? "home" : label.toLowerCase()}`} className="nav-link">
+                  {label}
+                </a>
+              </motion.li>
+            ))}
           </ul>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero Section */}
       <section id="home" className="hero">
+        <div className="hero-bg-shapes">
+          <div className="hero-blob hero-blob-1" />
+          <div className="hero-blob hero-blob-2" />
+          <div className="hero-blob hero-blob-3" />
+        </div>
         <div className="hero-content">
-          <div className="hero-text">
-            <h1 className="hero-title">
-              <span className="greeting">Hello, I'm</span>
-              <span className="name">Mohammed Sithik</span>
-              <span className="title">Frontend Engineer</span>
-            </h1>
-            <p className="hero-description">
+          <motion.div
+            className="hero-text"
+            variants={stagger}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.2 }}
+          >
+            <motion.h1 className="hero-title" variants={stagger}>
+              <motion.span className="greeting" variants={fadeUp}>Hello, I'm</motion.span>
+              <motion.span className="name" variants={fadeUp}>Mohammed Sithik</motion.span>
+              <motion.span className="title" variants={fadeUp}>Frontend Engineer</motion.span>
+            </motion.h1>
+            <motion.p className="hero-description" variants={fadeUp}>
               I specialize in building seamless digital experiences across
               platforms — from responsive web applications to powerful mobile
               apps for iOS and Android, and even desktop and tablet
               applications. My focus is on creating solutions that are fast,
               functional, and user-friendly, ensuring a smooth experience no
               matter the device.
-            </p>
-            <div className="hero-buttons">
-              <a href="#projects" className="btn btn-primary">
+            </motion.p>
+            <motion.div className="hero-buttons" variants={fadeUp}>
+              <motion.a href="#projects" className="btn btn-primary" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
                 View My Work
-              </a>
-              <a href="#contact" className="btn btn-secondary">
+              </motion.a>
+              <motion.a href="#contact" className="btn btn-secondary" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
                 Get In Touch
-              </a>
-            </div>
-          </div>
-          <div className="hero-image">
-            <div className="profile-card">
-              <div className="profile-image">
-                <div className="avatar-container">
-                  <div className="avatar-glow"></div>
-                  <div className="avatar-image">
-                    <img
-                      src="https://media.licdn.com/dms/image/v2/D5603AQEdTNtuE4JzfQ/profile-displayphoto-shrink_800_800/B56ZSuS.F0GUAg-/0/1738090996727?e=1759968000&v=beta&t=On1alQQt4ymZHgqYHWvBGqKbur3cEWASBACn7ThGnpw"
-                      alt="Sithik"
-                      className="profile-photo"
-                    />
-                  </div>
-                  {/* <div className="tech-badges">
-                    <div className="tech-badge badge-1">⚛️</div>
-                    <div className="tech-badge badge-2">📱</div>
-                    <div className="tech-badge badge-3">🔥</div>
-                    <div className="tech-badge badge-4">🟨</div>
-                    <div className="tech-badge badge-5">🔷</div>
-                    <div className="tech-badge badge-6">🍃</div>
-                  </div> */}
-                </div>
+              </motion.a>
+            </motion.div>
+          </motion.div>
+          <motion.div
+            className="hero-image"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.div
+              className="profile-card"
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <div className="avatar-circle">
+                <img
+                  src={profileImage}
+                  alt="Mohammed Sithik"
+                  className="profile-photo"
+                />
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
-        <div className="scroll-indicator">
-          <div className="scroll-arrow"></div>
-        </div>
+        <motion.div
+          className="scroll-indicator"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+        >
+          <motion.div
+            className="scroll-arrow"
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
       </section>
 
       {/* About Section */}
-      <section id="about" className="about">
+      <section id="about" className="about" ref={aboutRef}>
         <div className="container">
-          <h2 className="section-title">About Me</h2>
-          <div className="about-content">
+          <motion.h2
+            className="section-title"
+            initial={{ opacity: 0, y: 30 }}
+            animate={aboutInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+          >
+            About Me
+          </motion.h2>
+          <motion.div
+            className="about-content"
+            initial="hidden"
+            animate={aboutInView ? "visible" : "hidden"}
+            variants={stagger}
+          >
             <div className="about-text">
-              <p>
+              <motion.p variants={fadeUp}>
                 I'm a passionate <strong>Frontend Engineer</strong> and
                 Full-Stack Developer with a love for creating innovative,
                 user-friendly, and impactful digital experiences. With expertise
                 in modern web technologies, I specialize in building
                 applications that work flawlessly across
                 <strong>
-                  Web, Mobile (iOS & Android), Desktop, and Tablet
+                  {" "}Web, Mobile (iOS & Android), Desktop, and Tablet
                 </strong>{" "}
                 platforms.
-              </p>
-              <p>
+              </motion.p>
+              <motion.p variants={fadeUp}>
                 Beyond coding, I enjoy exploring new technologies, contributing
                 to open-source projects, and sharing knowledge with the
                 developer community — always striving to grow, innovate, and
                 inspire others.
-              </p>
-              <div className="stats">
-                <div className="stat">
-                  <span className="stat-number">10+</span>
-                  <span className="stat-label">Projects</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-number">3+</span>
-                  <span className="stat-label">Years Experience</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-number">100%</span>
-                  <span className="stat-label">Client Satisfaction</span>
-                </div>
-              </div>
+              </motion.p>
+              <motion.div className="stats" variants={stagger}>
+                {[
+                  { number: "10+", label: "Projects" },
+                  { number: "3+", label: "Years Experience" },
+                  { number: "100%", label: "Client Satisfaction" },
+                ].map((item, i) => (
+                  <motion.div key={i} className="stat" variants={fadeUp} whileHover={{ y: -8, scale: 1.02 }}>
+                    <span className="stat-number">{item.number}</span>
+                    <span className="stat-label">{item.label}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Skills Section */}
-      <section id="skills" className="skills">
+      <section id="skills" className="skills" ref={skillsRef}>
         <div className="container">
-          <h2 className="section-title">Skills & Technologies</h2>
-          <div className="skills-grid">
-            <div className="skill-category">
-              <h3>Frontend</h3>
-              <div className="skill-items">
-                <div className="skill-item">React</div>
-                <div className="skill-item">React Native</div>
-                <div className="skill-item">Redux</div>
-                <div className="skill-item">Redux-Toolkit</div>
-                <div className="skill-item">JavaScript</div>
-                <div className="skill-item">TypeScript</div>
-                <div className="skill-item">HTML5</div>
-                <div className="skill-item">CSS3</div>
-                <div className="skill-item">Sass</div>
-                <div className="skill-item">Firebase</div>
-              </div>
-            </div>
-            <div className="skill-category">
-              <h3>Backend</h3>
-              <div className="skill-items">
-                <div className="skill-item">Node.js</div>
-                <div className="skill-item">MongoDB</div>
-                <div className="skill-item">REST APIs</div>
-              </div>
-            </div>
-            <div className="skill-category">
-              <h3>Tools & Others</h3>
-              <div className="skill-items">
-                <div className="skill-item">Git</div>
-                <div className="skill-item">Figma</div>
-                <div className="skill-item">VS Code</div>
-                <div className="skill-item">Android Studio</div>
-                <div className="skill-item">X Code</div>
-                <div className="skill-item">XD</div>
-              </div>
-            </div>
-          </div>
+          <motion.h2
+            className="section-title"
+            initial={{ opacity: 0, y: 30 }}
+            animate={skillsInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+          >
+            Skills & Technologies
+          </motion.h2>
+          <motion.div
+            className="skills-grid"
+            initial="hidden"
+            animate={skillsInView ? "visible" : "hidden"}
+            variants={stagger}
+          >
+            {[
+              {
+                title: "Frontend",
+                items: ["React", "React Native", "Redux", "Redux-Toolkit", "JavaScript", "TypeScript", "HTML5", "CSS3", "Sass", "Firebase"],
+              },
+              { title: "Backend", items: ["Node.js", "MongoDB", "REST APIs"] },
+              { title: "Tools & Others", items: ["Git", "Figma", "VS Code", "Android Studio", "X Code", "XD"] },
+            ].map((cat, i) => (
+              <motion.div key={cat.title} className="skill-category" variants={fadeUp} whileHover={{ y: -6 }}>
+                <h3>{cat.title}</h3>
+                <div className="skill-items">
+                  {cat.items.map((item, j) => (
+                    <motion.div
+                      key={item}
+                      className="skill-item"
+                      variants={fadeUp}
+                      whileHover={{ scale: 1.08, y: -2 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    >
+                      {item}
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
       {/* Projects Section */}
-      <section id="projects" className="projects">
+      <section id="projects" className="projects" ref={projectsRef}>
         <div className="container">
-          <h2 className="section-title">Featured Projects</h2>
-          <div className="projects-grid">
-            {projects.map((project) => (
-              <div
+          <motion.h2
+            className="section-title"
+            initial={{ opacity: 0, y: 30 }}
+            animate={projectsInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+          >
+            Featured Projects
+          </motion.h2>
+          <motion.div
+            className="projects-grid"
+            initial="hidden"
+            animate={projectsInView ? "visible" : "hidden"}
+            variants={stagger}
+          >
+            {projects.map((project, i) => (
+              <motion.div
                 key={project.id}
                 className="project-card"
+                variants={fadeUp}
+                whileHover={{ y: -12, transition: { duration: 0.25 } }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => openProjectModal(project)}
               >
                 <div className="project-image">
                   <div className="project-placeholder">
-                    <img src={project.icon} className="project-icon" />
+                    <img src={project.icon} className="project-icon" alt="" />
                   </div>
                   <div className="project-overlay">
                     <span className="view-details">View Details</span>
@@ -355,7 +458,6 @@ function App() {
                         Play Store 🔗
                       </a>
                     )}
-
                     {project.details.appStoreUrl && (
                       <a
                         href={project.details.appStoreUrl}
@@ -367,7 +469,6 @@ function App() {
                         App Store 🔗
                       </a>
                     )}
-
                     {project.details.liveUrl && (
                       <a
                         href={project.details.liveUrl}
@@ -376,26 +477,37 @@ function App() {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        live Site 🔗
+                        Live Site 🔗
                       </a>
                     )}
-                    <a></a>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Availability Section */}
-      <section id="availability" className="availability">
+      <section id="availability" className="availability" ref={availabilityRef}>
         <div className="container">
-          <h2 className="section-title">Freelancing Services</h2>
-          <div className="availability-content">
-            <div className="availability-hero">
+          <motion.h2
+            className="section-title"
+            initial={{ opacity: 0, y: 30 }}
+            animate={availabilityInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+          >
+            Freelancing Services
+          </motion.h2>
+          <motion.div
+            className="availability-content"
+            initial="hidden"
+            animate={availabilityInView ? "visible" : "hidden"}
+            variants={stagger}
+          >
+            <motion.div className="availability-hero" variants={fadeUp}>
               <div className="availability-status">
-                <div className="status-indicator available"></div>
+                <div className="status-indicator available" />
                 <span className="status-text">Available for Projects</span>
               </div>
               <h3>Ready to Transform Your Ideas into Reality</h3>
@@ -405,86 +517,85 @@ function App() {
                 development, mobile apps, and modern web technologies, I'm here
                 to help you build exceptional digital experiences.
               </p>
-            </div>
+            </motion.div>
 
             <div className="services-grid">
-              <div className="service-card">
-                <div className="service-icon">🌐</div>
-                <h4>Web Development</h4>
-                <p>
-                  Modern, responsive websites and web applications using React,
-                  Node.js, and cutting-edge technologies.
-                </p>
-                <ul>
-                  <li>E-commerce Platforms</li>
-                  <li>Business Websites</li>
-                  <li>Web Applications</li>
-                  <li>API Development</li>
-                </ul>
-              </div>
-
-              <div className="service-card">
-                <div className="service-icon">📱</div>
-                <h4>Mobile Development</h4>
-                <p>
-                  Cross-platform mobile applications using React Native for iOS
-                  and Android with native performance.
-                </p>
-                <ul>
-                  <li>iOS & Android Apps</li>
-                  <li>Cross-platform Solutions</li>
-                  <li>App Store Deployment</li>
-                  <li>UI/UX Design</li>
-                </ul>
-              </div>
+              {[
+                {
+                  icon: "🌐",
+                  title: "Web Development",
+                  desc: "Modern, responsive websites and web applications using React, Node.js, and cutting-edge technologies.",
+                  list: ["E-commerce Platforms", "Business Websites", "Web Applications", "API Development"],
+                },
+                {
+                  icon: "📱",
+                  title: "Mobile Development",
+                  desc: "Cross-platform mobile applications using React Native for iOS and Android with native performance.",
+                  list: ["iOS & Android Apps", "Cross-platform Solutions", "App Store Deployment", "UI/UX Design"],
+                },
+              ].map((s, i) => (
+                <motion.div
+                  key={s.title}
+                  className="service-card"
+                  variants={fadeUp}
+                  whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                >
+                  <div className="service-icon">{s.icon}</div>
+                  <h4>{s.title}</h4>
+                  <p>{s.desc}</p>
+                  <ul>
+                    {s.list.map((li) => (
+                      <li key={li}>{li}</li>
+                    ))}
+                  </ul>
+                </motion.div>
+              ))}
             </div>
 
-            <div className="availability-details">
-              <div className="detail-item">
-                <span className="detail-icon">⏰</span>
-                <div className="detail-content">
-                  <h4>Response Time</h4>
-                  <p>Within 24 hours</p>
-                </div>
-              </div>
-              <div className="detail-item">
-                <span className="detail-icon">💼</span>
-                <div className="detail-content">
-                  <h4>Project Types</h4>
-                  <p>Web Apps, Mobile Apps, APIs, E-commerce</p>
-                </div>
-              </div>
-              <div className="detail-item">
-                <span className="detail-icon">🌍</span>
-                <div className="detail-content">
-                  <h4>Availability</h4>
-                  <p>Remote work worldwide</p>
-                </div>
-              </div>
-              <div className="detail-item">
-                <span className="detail-icon">💰</span>
-                <div className="detail-content">
-                  <h4>Pricing</h4>
-                  <p>Competitive & flexible rates</p>
-                </div>
-              </div>
-            </div>
+            <motion.div className="availability-details" variants={stagger}>
+              {[
+                { icon: "⏰", title: "Response Time", text: "Within 24 hours" },
+                { icon: "💼", title: "Project Types", text: "Web Apps, Mobile Apps, APIs, E-commerce" },
+                { icon: "🌍", title: "Availability", text: "Remote work worldwide" },
+                { icon: "💰", title: "Pricing", text: "Competitive & flexible rates" },
+              ].map((d) => (
+                <motion.div key={d.title} className="detail-item" variants={fadeUp}>
+                  <span className="detail-icon">{d.icon}</span>
+                  <div className="detail-content">
+                    <h4>{d.title}</h4>
+                    <p>{d.text}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
 
-            <div className="availability-cta">
-              <a href="#contact" className="btn btn-primary">
+            <motion.div className="availability-cta" variants={fadeUp}>
+              <motion.a href="#contact" className="btn btn-primary" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
                 Start Your Project
-              </a>
-            </div>
-          </div>
+              </motion.a>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="contact">
+      <section id="contact" className="contact" ref={contactRef}>
         <div className="container">
-          <h2 className="section-title">Get In Touch</h2>
-          <div className="contact-content">
-            <div className="contact-info">
+          <motion.h2
+            className="section-title"
+            initial={{ opacity: 0, y: 30 }}
+            animate={contactInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+          >
+            Get In Touch
+          </motion.h2>
+          <motion.div
+            className="contact-content"
+            initial="hidden"
+            animate={contactInView ? "visible" : "hidden"}
+            variants={stagger}
+          >
+            <motion.div className="contact-info" variants={fadeUp}>
               <h3>Let's work together!</h3>
               <p>
                 I'm always interested in new opportunities and exciting
@@ -505,91 +616,140 @@ function App() {
                 </div>
               </div>
               <div className="social-links">
-                <a
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  href="https://www.linkedin.com/in/mohammed-sithik-s-2403a222b/"
-                  className="social-link"
-                >
-                  LinkedIn
-                </a>
-                <a
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  href="https://github.com/mohdsithik"
-                  className="social-link"
-                >
-                  GitHub
-                </a>
-                <a
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  href="https://x.com/SithikMohd?t=pcIvcO99qMhhgHr9FLPecw&s=09"
-                  className="social-link"
-                >
-                  Twitter
-                </a>
-
-                <a
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  href="https://www.instagram.com/mohd_sithik_?igsh=MW1leDZxMmRybWVtOA=="
-                  className="social-link"
-                >
-                  Instagram
-                </a>
+                {[
+                  { label: "LinkedIn", href: "https://www.linkedin.com/in/mohammed-sithik-s-2403a222b/" },
+                  { label: "GitHub", href: "https://github.com/mohdsithik" },
+                  { label: "Twitter", href: "https://x.com/SithikMohd?t=pcIvcO99qMhhgHr9FLPecw&s=09" },
+                  { label: "Instagram", href: "https://www.instagram.com/mohd_sithik_?igsh=MW1leDZxMmRybWVtOA==" },
+                ].map((s) => (
+                  <motion.a
+                    key={s.label}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={s.href}
+                    className="social-link"
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {s.label}
+                  </motion.a>
+                ))}
               </div>
-            </div>
-            <div className="contact-form">
-              {" "}
-              <form>
-                {" "}
+            </motion.div>
+            <motion.div className="contact-form" variants={fadeUp}>
+              <form onSubmit={handleContactSubmit}>
                 <div className="form-group">
-                  {" "}
-                  <input type="text" placeholder="Your Name" required />{" "}
-                </div>{" "}
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Your Name"
+                    value={formData.name}
+                    onChange={handleContactChange}
+                    required
+                    disabled={sending}
+                  />
+                </div>
                 <div className="form-group">
-                  {" "}
-                  <input type="email" placeholder="Your Email" required />{" "}
-                </div>{" "}
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Your Email"
+                    value={formData.email}
+                    onChange={handleContactChange}
+                    required
+                    disabled={sending}
+                  />
+                </div>
                 <div className="form-group">
-                  {" "}
-                  <input type="text" placeholder="Subject" required />{" "}
-                </div>{" "}
+                  <input
+                    type="text"
+                    name="subject"
+                    placeholder="Subject"
+                    value={formData.subject}
+                    onChange={handleContactChange}
+                    required
+                    disabled={sending}
+                  />
+                </div>
                 <div className="form-group">
-                  {" "}
                   <textarea
+                    name="message"
                     placeholder="Your Message"
                     rows="5"
+                    value={formData.message}
+                    onChange={handleContactChange}
                     required
-                  ></textarea>{" "}
-                </div>{" "}
-                <button type="submit" className="btn btn-primary">
-                  {" "}
-                  Send Message{" "}
-                </button>{" "}
-              </form>{" "}
-            </div>
-          </div>
+                    disabled={sending}
+                  />
+                </div>
+                {formStatus === "success" && (
+                  <p className="form-status form-status-success">Message sent! I&apos;ll get back to you soon.</p>
+                )}
+                {formStatus === "error" && (
+                  <p className="form-status form-status-error">
+                    {process.env.REACT_APP_EMAILJS_SERVICE_ID
+                      ? "Failed to send. Please try again or email me directly."
+                      : "Email not configured. Please email mohdsithik0786@gmail.com directly."}
+                  </p>
+                )}
+                <motion.button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={sending}
+                  whileHover={!sending ? { scale: 1.02 } : {}}
+                  whileTap={!sending ? { scale: 0.98 } : {}}
+                >
+                  {sending ? "Sending…" : "Send Message"}
+                </motion.button>
+              </form>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="footer">
+      <motion.footer
+        className="footer"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+      >
         <div className="container">
-          <p>&copy; 2024 Sithik. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Sithik. All rights reserved.</p>
         </div>
-      </footer>
+      </motion.footer>
 
       {/* Project Detail Modal */}
-      {selectedProject && (
-        <div className="modal-overlay" onClick={closeProjectModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={closeProjectModal}>
-              ×
-            </button>
+      <AnimatePresence>
+        {selectedProject && (
+          <motion.div
+            key={selectedProject.id}
+            className="modal-overlay"
+            onClick={closeProjectModal}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            >
+              <motion.button
+                className="modal-close"
+                onClick={closeProjectModal}
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                ×
+              </motion.button>
             <div className="modal-header">
-              <img src={selectedProject.icon} className="modal-icon" />
+              <img src={selectedProject.icon} className="modal-icon" alt="" />
               <h2>{selectedProject.title}</h2>
             </div>
             <div className="modal-body">
@@ -677,9 +837,10 @@ function App() {
                 </a>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
